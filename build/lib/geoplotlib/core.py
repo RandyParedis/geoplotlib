@@ -10,7 +10,7 @@ import math
 import numpy as np
 import os
 import random
-import urllib.request
+import urllib.request, urllib.error, urllib.parse
 import pyglet
 from os.path import expanduser
 from geoplotlib import utils
@@ -144,15 +144,15 @@ class UiManager:
         painter.set_color([255,255,255])
         self.labels['tooltip'].x = mouse_x
         self.labels['tooltip'].y = mouse_y
-        for l in self.labels.values():
+        for l in list(self.labels.values()):
             self.draw_label_background(l, painter)
         painter.batch_draw()
-        for l in self.labels.values():
+        for l in list(self.labels.values()):
             l.draw()
 
 
     def clear(self):
-        for l in self.labels.values():
+        for l in list(self.labels.values()):
             l.text = ''
 
 
@@ -301,11 +301,11 @@ class GeoplotlibApp(pyglet.window.Window):
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         if self.scroll_delay == 0:
             if scroll_y < 0:
-                self.proj.zoomout(self.mouse_x, self.mouse_y)
+                self.proj.zoomin(self.mouse_x, self.mouse_y)
                 self.invalidate_delay = TOTAL_INVALIDATE_DELAY
                 self.scroll_delay = 3
             elif scroll_y > 0:
-                self.proj.zoomin(self.mouse_x, self.mouse_y)
+                self.proj.zoomout(self.mouse_x, self.mouse_y)
                 self.invalidate_delay = TOTAL_INVALIDATE_DELAY
                 self.scroll_delay = 3
 
@@ -314,7 +314,7 @@ class GeoplotlibApp(pyglet.window.Window):
         if symbol == pyglet.window.key.P:
             fname = '%d.png' % (time.time()*1000)
             GeoplotlibApp.screenshot(fname)
-            print(fname + ' saved')
+            print((fname + ' saved'))
         elif symbol == pyglet.window.key.M:
             self.show_map = not self.show_map
         elif symbol == pyglet.window.key.L:
@@ -337,7 +337,7 @@ class GeoplotlibApp(pyglet.window.Window):
         elif symbol == pyglet.window.key.S:
             self.proj.pan(0, -KEYBOARD_PAN)
         elif symbol == pyglet.window.key.B:
-            print(self.proj.bbox())
+            print((self.proj.bbox()))
         elif symbol == pyglet.window.key.C:
             self.show_coordinates = not self.show_coordinates
         else:
@@ -803,10 +803,10 @@ class TileDownloaderThread(Thread):
                 destination.write(content)
                 destination.close()
             except Exception as e:
-                print(url, e)
+                print((url, e))
 
 
-_GEOPLOTLIB_ATTRIBUTION = u'made with geoplotlib | '
+_GEOPLOTLIB_ATTRIBUTION = 'made with geoplotlib | '
 
 _DEFAULT_TILE_PROVIDERS = {
     'watercolor': { 'url': lambda zoom, xtile, ytile:
@@ -823,11 +823,11 @@ _DEFAULT_TILE_PROVIDERS = {
     },
     'darkmatter': { 'url': lambda zoom, xtile, ytile:
                             'http://%s.basemaps.cartocdn.com/dark_all/%d/%d/%d.png' % (random.choice(['a', 'b', 'c']), zoom, xtile, ytile),
-                    'attribution': _GEOPLOTLIB_ATTRIBUTION + u'© OpenStreetMap contributors © CartoDB'
+                    'attribution': _GEOPLOTLIB_ATTRIBUTION + '© OpenStreetMap contributors © CartoDB'
     },
     'positron': { 'url': lambda zoom, xtile, ytile:
                             'http://%s.basemaps.cartocdn.com/light_all/%d/%d/%d.png' % (random.choice(['a', 'b', 'c']), zoom, xtile, ytile),
-                    'attribution': _GEOPLOTLIB_ATTRIBUTION + u'© OpenStreetMap contributors © CartoDB'
+                    'attribution': _GEOPLOTLIB_ATTRIBUTION + '© OpenStreetMap contributors © CartoDB'
     }
 
 }
@@ -898,4 +898,4 @@ class MapLayer():
                         tilesurf.y = int(SCREEN_H - (y - proj.ytile + 1)*TILE_SIZE)
                         tilesurf.draw()
                     except Exception as e:
-                        print('exception blitting', x, y, proj.zoom, e)
+                        print(('exception blitting', x, y, proj.zoom, e))

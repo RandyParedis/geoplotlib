@@ -15,7 +15,8 @@ Examples source code is [here](https://github.com/andrea-cuttone/geoplotlib/tree
 geoplotlib requires:
 * [numpy](http://www.numpy.org/)
 * [pyglet 1.2.4](https://bitbucket.org/pyglet/pyglet/wiki/Download)
-	* **note:** in order for pyglet to work with ipython on Mac, version 1.2.4 or newer is needed
+    * **note:** in order for pyglet to work with ipython on Mac, version 1.2.4 or newer is needed
+    * **note:** the most recent working version of pyglet is 1.5.27
 
 optional requirements:
 * [matplotlib](http://matplotlib.org/) for colormaps

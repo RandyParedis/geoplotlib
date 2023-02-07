@@ -5,7 +5,7 @@ Use other attribute for coloring like edge weight
 
 """
 
-def test_graph():
+def tst_graph():
     import geoplotlib
     from geoplotlib.utils import read_csv
 
@@ -26,6 +26,6 @@ def test_graph():
 
 if __name__ == '__main__':
 
-    test_graph()
+    tst_graph()
 
 

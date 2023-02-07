@@ -3,7 +3,7 @@ import csv
 from datetime import datetime
 import json
 from math import radians, cos, sin, asin, sqrt
-import urllib.request
+import urllib.request, urllib.error, urllib.parse
 import numpy as np
 
 
@@ -17,7 +17,7 @@ def haversine(lon1, lat1, lon2, lat2):
     :param lat2: point 2 longitude
     :return: distance in meters between points 1 and 2
     """
-    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    lon1, lat1, lon2, lat2 = list(map(radians, [lon1, lat1, lon2, lat2]))
     dlon = lon2 - lon1
     dlat = lat2 - lat1
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
@@ -115,18 +115,18 @@ class DataAccessObject():
         """
         :return: the keys (field names)
         """
-        return self.dict.keys()
+        return list(self.dict.keys())
 
 
     def values(self):
         """
         :return: the values (field values)
         """
-        return self.dict.values()
+        return list(self.dict.values())
 
 
     def __str__(self):
-        return 'DataAccessObject(%s x %d)' % (str(self.dict.keys()), len(self))
+        return 'DataAccessObject(%s x %d)' % (str(list(self.dict.keys())), len(self))
 
 
     def __repr__(self):
@@ -148,11 +148,11 @@ def read_csv(fname):
     with open(fname) as f:
         reader = csv.DictReader(f)
         for row in reader:
-            for (k,v) in row.items():
+            for (k,v) in list(row.items()):
                 values[k].append(v)
-    npvalues = {k: np.array(values[k]) for k in values.keys()}
-    for k in npvalues.keys():
-        for datatype in [int, float]:
+    npvalues = {k: np.array(values[k]) for k in list(values.keys())}
+    for k in list(npvalues.keys()):
+        for datatype in [np.int, np.float]:
             try:
                 npvalues[k][:1].astype(datatype)
                 npvalues[k] = npvalues[k].astype(datatype)
@@ -244,8 +244,8 @@ class BoundingBox():
         if len(jo) == 0:
             raise Exception('No results found')
 
-        south, north, west, east = map(float, jo[0]['boundingbox'])
-        print('bbox from Nominatim:', south, north, west, east)
+        south, north, west, east = list(map(float, jo[0]['boundingbox']))
+        print(('bbox from Nominatim:', south, north, west, east))
         return BoundingBox(north=north, west=west, south=south, east=east)
 
 

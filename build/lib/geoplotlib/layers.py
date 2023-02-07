@@ -8,13 +8,15 @@ import numpy as np
 import geoplotlib.colors as colors
 from geoplotlib.core import BatchPainter,FONT_NAME
 from geoplotlib.utils import BoundingBox
-import queue as Queue
+import queue
 from inspect import isfunction
 import json
 
 
 
 class HotspotManager():
+
+
     def __init__(self):
         self.rects = []
         self.poly = []
@@ -138,7 +140,7 @@ class DotDensityLayer(BaseLayer):
         x, y = proj.lonlat_to_screen(self.data['lon'], self.data['lat'])
         if self.f_tooltip:
             for i in range(0, len(x)):
-                record = {k: self.data[k][i] for k in self.data.keys()}
+                record = {k: self.data[k][i] for k in list(self.data.keys())}
                 self.hotspots.add_rect(x[i] - self.point_size, y[i] - self.point_size,
                                        2*self.point_size, 2*self.point_size,
                                        self.f_tooltip(record))
@@ -207,7 +209,7 @@ class HistogramLayer(BaseLayer):
             self.vmax = max(results.values()) if len(results) > 0 else 0
 
         if self.vmax >= 1:
-            for (ix, iy), value in results.items():
+            for (ix, iy), value in list(results.items()):
                 if value > self.scalemin:
                     self.painter.set_color(self.cmap.to_color(value, self.vmax, self.colorscale))
                     l = self.binsize
@@ -265,8 +267,7 @@ class GraphLayer(BaseLayer):
             self.cmap = colors.ColorMap(self.color, alpha, levels = levels)
 
         if color_by is None:
-            color_by = 'distance'
-        self.color_by = color_by
+            self.color_by = 'distance'
         self.seg_scale = seg_scale
 
 
@@ -335,7 +336,7 @@ class ShapefileLayer(BaseLayer):
 
         self.reader = shapefile.Reader(fname, encoding=encoding, encodingErrors=encodingErrors)
         self.worker = None
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
 
 
     def invalidate(self, proj):
@@ -346,7 +347,7 @@ class ShapefileLayer(BaseLayer):
         if self.worker:
             self.worker.stop()
             self.worker.join()
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         self.worker = ShapeLoadingThread(self.queue, self.reader, self.shape_type, proj)
         self.worker.start()
 
@@ -368,7 +369,7 @@ class ShapefileLayer(BaseLayer):
                         self.hotspots.add_rect(x.min(), y.min(), x.max()-x.min(), y.max()-y.min(), value)
                     else:
                         self.hotspots.add_poly(x, y, value)
-            except Queue.Empty:
+            except queue.Empty:
                 break
 
 
@@ -646,7 +647,7 @@ class VoronoiLayer(BaseLayer):
                 self.painter.poly(polygon[:,0], polygon[:,1])
 
             if self.f_tooltip:
-                record = {k: self.data[k][idx] for k in self.data.keys()}
+                record = {k: self.data[k][idx] for k in list(self.data.keys())}
                 self.hotspots.add_poly(polygon[:,0], polygon[:,1], self.f_tooltip(record))
 
 
@@ -676,8 +677,8 @@ class MarkersLayer(BaseLayer):
         self.f_tooltip = f_tooltip
         self.marker_preferred_size = float(marker_preferred_size)
         self.marker = pyglet.image.load(marker)
-        self.marker.anchor_x = self.marker.width // 2
-        self.marker.anchor_y = self.marker.height // 2
+        self.marker.anchor_x = self.marker.width / 2
+        self.marker.anchor_y = self.marker.height / 2
         self.scale = self.marker_preferred_size / max(self.marker.width, self.marker.height)
 
         self.hotspots = HotspotManager()
@@ -689,7 +690,7 @@ class MarkersLayer(BaseLayer):
 
         if self.f_tooltip:
             for i in range(0, len(x)):
-                record = {k: self.data[k][i] for k in self.data.keys()}
+                record = {k: self.data[k][i] for k in list(self.data.keys())}
                 self.hotspots.add_rect(x[i] - self.marker_preferred_size/2,
                                        y[i] - self.marker_preferred_size/2,
                                        self.marker_preferred_size,
@@ -773,8 +774,8 @@ class KDELayer(BaseLayer):
             # np.save('z.npy', z)
             # z = np.load('z.npy')
 
-            print('smallest non-zero density:', z[z > 0][0])
-            print('max density:', z.max())
+            print(('smallest non-zero density:', z[z > 0][0]))
+            print(('max density:', z.max()))
 
             if self.cut_below is None:
                 zmin = z[z > 0][0]
@@ -805,8 +806,8 @@ class KDELayer(BaseLayer):
                 return
 
             H = gaussian_filter(H, sigma=self.bw)
-            print('smallest non-zero count', H[H > 0][0])
-            print('max count:', H.max())
+            print(('smallest non-zero count', H[H > 0][0]))
+            print(('max count:', H.max()))
 
             if self.cut_below is None:
                 Hmin = H[H > 0][0]
@@ -959,7 +960,7 @@ class GeoJSONLayer(BaseLayer):
         
         for feature in self.data['features']:
             if feature['geometry'] is None:
-                print('feature without geometry data: %s' % feature['properties']['NAME'])
+                print(('feature without geometry data: %s' % feature['properties']['NAME']))
                 continue
                 
             if feature['geometry']['type'] == 'Polygon':
@@ -1034,7 +1035,7 @@ class GeoJSONLayer(BaseLayer):
                 x, y = proj.lonlat_to_screen(line[:,0], line[:,1])
                 self.painter.linestrip(x, y, self.linewidth, closed=False)
             else:
-                print('unknow geometry %s' % feature['geometry']['type'])
+                print(('unknow geometry %s' % feature['geometry']['type']))
 
 
     def draw(self, proj, mouse_x, mouse_y, ui_manager):
