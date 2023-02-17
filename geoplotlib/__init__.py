@@ -2,7 +2,7 @@ import base64
 import traceback
 import pyglet
 from geoplotlib.core import GeoplotlibApp
-from core import FONT_NAME
+from geoplotlib.core import FONT_NAME
 
 
 class AppConfig:
@@ -355,6 +355,13 @@ def set_window_size(w, h):
     """
     _global_config.screen_w = w
     _global_config.screen_h = h
+
+
+def get_window_size():
+    """
+    Obtains the geoplotlib window size.
+    """
+    return _global_config.screen_w, _global_config.screen_h
 
 
 def request_zoom(zoom):

@@ -23,7 +23,7 @@ TILE_SIZE = 256
 MIN_ZOOM = 2
 MAX_ZOOM = 20
 KEYBOARD_PAN = 0.2
-TOTAL_INVALIDATE_DELAY = 50
+TOTAL_INVALIDATE_DELAY = 3
 FONT_COLOR = (0,0,0,255)
 FONT_NAME = 'Helvetica'
 FONT_SCALING = 1./100
@@ -94,7 +94,7 @@ class UiManager:
                                        color=FONT_COLOR,
                                        font_name=FONT_NAME,
                                        font_size=self.font_size,
-                                       x=SCREEN_W, y=SCREEN_H,
+                                       x=SCREEN_W, y=SCREEN_H, align='right',
                                        multiline=True, width=SCREEN_W,
                                        anchor_x='right', anchor_y='top')
 
@@ -284,8 +284,9 @@ class GeoplotlibApp(pyglet.window.Window):
     def on_mouse_release(self, x, y, buttons, modifiers):
         if buttons == mouse.LEFT:
             self.dragging = False
-            if self.ticks - self.drag_start_timestamp > 200:
-                self.drag_x = self.drag_y = 0
+            # This line enables/disables map sliding friction for some reason
+            # if self.ticks - self.drag_start_timestamp > 200:
+            self.drag_x = self.drag_y = 0
 
 
     def on_mouse_press(self, x, y, buttons, modifiers):
@@ -686,10 +687,10 @@ class Projector():
 
     @staticmethod
     def deg2num(lat_deg, lon_deg, zoom):
-        lat_rad = math.radians(lat_deg)
+        lat_rad = np.radians(lat_deg)
         n = 2.0 ** zoom
         xtile = (lon_deg + 180.0) / 360.0 * n
-        ytile = (1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi) / 2.0 * n
+        ytile = (1.0 - np.log(np.tan(lat_rad) + (1 / np.cos(lat_rad))) / np.pi) / 2.0 * n
         return (xtile, ytile)
 
 
@@ -697,8 +698,8 @@ class Projector():
     def num2deg(xtile, ytile, zoom):
         n = 2.0 ** zoom
         lon_deg = xtile / n * 360.0 - 180.0
-        lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
-        lat_deg = math.degrees(lat_rad)
+        lat_rad = np.arctan(np.sinh(np.pi * (1 - 2 * ytile / n)))
+        lat_deg = np.degrees(lat_rad)
         return (lat_deg, lon_deg)
 
 
@@ -750,24 +751,25 @@ class Projector():
         if type(lat) == list:
             lat = np.array(lat)
 
-        lat_rad = np.radians(lat)
-        n = 2.0 ** self.zoom
-        xtile = (lon + 180.0) / 360.0 * n
-        ytile = (1.0 - np.log(np.tan(lat_rad) + (1 / np.cos(lat_rad))) / math.pi) / 2.0 * n
+        xtile, ytile = self.deg2num(lat, lon, self.zoom)
         x = (xtile * TILE_SIZE).astype(int)
         y = (SCREEN_H - ytile * TILE_SIZE).astype(int)
         return x, y
 
 
-    def screen_to_latlon(self, x, y):
+    def screen_to_latlon(self, x, y, add_offset=True):
         """
         Return the latitude and longitude corresponding to a screen point
         :param x: screen x
         :param y: screen y
+        :param add_offset: whether or not to take the absolute coordinates
         :return: latitude and longitude at x,y
         """
-        xtile = 1. * x / TILE_SIZE + self.xtile
-        ytile = 1. * y / TILE_SIZE + self.ytile
+        xtile = 1. * x / TILE_SIZE
+        ytile = 1. * y / TILE_SIZE
+        if add_offset:
+            xtile += self.xtile
+            ytile += self.ytile
         return self.num2deg(xtile, ytile, self.zoom)
 
 
@@ -796,7 +798,8 @@ class TileDownloaderThread(Thread):
             assert download_path.endswith('.png')
             try:
                 # print "downloading %s as %s" % (url, download_path)
-                source = urllib.request.urlopen(url)
+                req = urllib.request.Request(url, headers={'User-Agent': "GeoPlotLib/1.0 (Python)"})
+                source = urllib.request.urlopen(req)
                 content = source.read()
                 source.close()
                 destination = open(download_path,'wb')
@@ -813,6 +816,10 @@ _DEFAULT_TILE_PROVIDERS = {
                             'http://%s.tile.stamen.com/watercolor/%d/%d/%d.png' % (random.choice(['a', 'b', 'c', 'd']), zoom, xtile, ytile),
                     'attribution': _GEOPLOTLIB_ATTRIBUTION + 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.'
     },
+    'terrain': { 'url': lambda zoom, xtile, ytile:
+                        "http://%s.tile.stamen.com/terrain/%d/%d/%d.png" % (random.choice(['a', 'b', 'c', 'd']), zoom, xtile, ytile),
+               'attribution': _GEOPLOTLIB_ATTRIBUTION + 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.'
+    },
     'toner': { 'url': lambda zoom, xtile, ytile:
                         "http://%s.tile.stamen.com/toner/%d/%d/%d.png" % (random.choice(['a', 'b', 'c', 'd']), zoom, xtile, ytile),
                'attribution': _GEOPLOTLIB_ATTRIBUTION + 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.'
@@ -822,17 +829,29 @@ _DEFAULT_TILE_PROVIDERS = {
                     'attribution': _GEOPLOTLIB_ATTRIBUTION + 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.'
     },
     'darkmatter': { 'url': lambda zoom, xtile, ytile:
-                            'http://%s.basemaps.cartocdn.com/dark_all/%d/%d/%d.png' % (random.choice(['a', 'b', 'c']), zoom, xtile, ytile),
+                            'http://%s.basemaps.cartocdn.com/dark_all/%d/%d/%d.png' % (random.choice(['a', 'b', 'c', 'd']), zoom, xtile, ytile),
                     'attribution': _GEOPLOTLIB_ATTRIBUTION + u'© OpenStreetMap contributors © CartoDB'
     },
     'positron': { 'url': lambda zoom, xtile, ytile:
-                            'http://%s.basemaps.cartocdn.com/light_all/%d/%d/%d.png' % (random.choice(['a', 'b', 'c']), zoom, xtile, ytile),
+                            'http://%s.basemaps.cartocdn.com/light_all/%d/%d/%d.png' % (random.choice(['a', 'b', 'c', 'd']), zoom, xtile, ytile),
                     'attribution': _GEOPLOTLIB_ATTRIBUTION + u'© OpenStreetMap contributors © CartoDB'
+    },
+    'voyager': { 'url': lambda zoom, xtile, ytile:
+                            'http://%s.basemaps.cartocdn.com/rastertiles/voyager/%d/%d/%d.png' % (random.choice(['a', 'b', 'c', 'd']), zoom, xtile, ytile),
+                    'attribution': _GEOPLOTLIB_ATTRIBUTION + u'© OpenStreetMap contributors © CartoDB'
+    },
+    'cycle': { 'url': lambda zoom, xtile, ytile:
+                            'http://%s.tile3.opencyclemap.org/landscape/%d/%d/%d.png' % (random.choice(['a', 'b', 'c']), zoom, xtile, ytile),
+                    'attribution': _GEOPLOTLIB_ATTRIBUTION + u'© OpenStreetMap contributors © OpenCycleMap'
+    },
+    'osm': { 'url': lambda zoom, xtile, ytile:
+                    'http://tile.openstreetmap.org/%s/%s/%s.png' % (zoom, xtile, ytile),
+                    'attribution': _GEOPLOTLIB_ATTRIBUTION + u'© OpenStreetMap contributors'
     }
 
 }
 
-class MapLayer():
+class MapLayer:
 
     def __init__(self, tiles_provider, skipdl=False):
         if type(tiles_provider) == str:
