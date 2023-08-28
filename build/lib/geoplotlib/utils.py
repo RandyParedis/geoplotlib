@@ -152,7 +152,7 @@ def read_csv(fname):
                 values[k].append(v)
     npvalues = {k: np.array(values[k]) for k in list(values.keys())}
     for k in list(npvalues.keys()):
-        for datatype in [np.int, np.float]:
+        for datatype in [int, float]:
             try:
                 npvalues[k][:1].astype(datatype)
                 npvalues[k] = npvalues[k].astype(datatype)

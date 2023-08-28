@@ -26,7 +26,7 @@ KEYBOARD_PAN = 0.2
 TOTAL_INVALIDATE_DELAY = 3
 FONT_COLOR = (0,0,0,255)
 FONT_NAME = 'Helvetica'
-FONT_SCALING = 1./100
+FONT_SCALING = 1./50
 
 
 class UiManager:
@@ -419,10 +419,15 @@ class BatchPainter:
         glLineWidth(width)
         x = _flatten_xy(x0, x1)
         y = _flatten_xy(y0, y1)
+        # vertices = np.vstack((x, y)).T
         vertices = _flatten_xy(x, y)
         if colors is None:
             colors = self._color * int(len(vertices)/VERT_PER_POINT)
+            # colors = self._color * int(len(x0))
 
+        # for i in range(len(x0)):
+        #     line = pyglet.shapes.Line(x0[i], y0[i], x1[i], y1[i], width, colors[i], batch=self._batch)
+        # line = pyglet.shapes.Polygon(vertices)
         self._batch.add(int(len(vertices)/VERT_PER_POINT), GL_LINES, None,
                       ('v2f', vertices),
                       ('c4B', np.array(colors).flatten()))
@@ -516,11 +521,12 @@ class BatchPainter:
     def points(self, x, y, point_size=10, rounded=False):
         glPointSize(point_size)
         if rounded:
-            glEnable(GL_POINT_SMOOTH)
+            glEnable(GL_LINE_SMOOTH)
         else:
-            glDisable(GL_POINT_SMOOTH)
+            glDisable(GL_LINE_SMOOTH)
 
         vertices = np.vstack((x, y)).T.flatten()
+
 
         self._batch.add(int(len(vertices)/VERT_PER_POINT), GL_POINTS, None,
                         ('v2f', vertices),
